@@ -366,6 +366,198 @@ async function analyzeEmotionalPatterns(profile, allEntries) {
 // --------------------------------------------------------------------------------
 
 /**
+ * Custom DatePicker component styled with pure CSS-in-JS.
+ * Allows picking future dates from a beautiful calendar interface.
+ */
+function DatePicker(props) {
+  const { value, onChange, min, error } = props;
+  const [isOpen, setIsOpen] = useState(false);
+  const [currentYear, setCurrentYear] = useState(new Date().getFullYear());
+  const [currentMonth, setCurrentMonth] = useState(new Date().getMonth());
+  const containerRef = useRef(null);
+
+  useEffect(() => {
+    function handleClickOutside(event) {
+      if (
+        containerRef.current &&
+        !containerRef.current.contains(event.target)
+      ) {
+        setIsOpen(false);
+      }
+    }
+    document.addEventListener("mousedown", handleClickOutside);
+    return () => {
+      document.removeEventListener("mousedown", handleClickOutside);
+    };
+  }, []);
+
+  const monthNames = [
+    "January",
+    "February",
+    "March",
+    "April",
+    "May",
+    "June",
+    "July",
+    "August",
+    "September",
+    "October",
+    "November",
+    "December",
+  ];
+
+  const dayNames = ["Su", "Mo", "Tu", "We", "Th", "Fr", "Sa"];
+
+  function getDaysInMonth(year, month) {
+    return new Date(year, month + 1, 0).getDate();
+  }
+
+  function getFirstDayIndex(year, month) {
+    return new Date(year, month, 1).getDay();
+  }
+
+  function handlePrevMonth() {
+    setCurrentMonth((prev) => {
+      if (prev === 0) {
+        setCurrentYear((y) => y - 1);
+        return 11;
+      }
+      return prev - 1;
+    });
+  }
+
+  function handleNextMonth() {
+    setCurrentMonth((prev) => {
+      if (prev === 11) {
+        setCurrentYear((y) => y + 1);
+        return 0;
+      }
+      return prev + 1;
+    });
+  }
+
+  function handleSelectDay(day) {
+    const selectedDate = new Date(currentYear, currentMonth, day);
+    const yyyy = selectedDate.getFullYear();
+    const mm = String(selectedDate.getMonth() + 1).padStart(2, "0");
+    const dd = String(selectedDate.getDate()).padStart(2, "0");
+    const formatted = `${yyyy}-${mm}-${dd}`;
+    onChange(formatted);
+    setIsOpen(false);
+  }
+
+  const totalDays = getDaysInMonth(currentYear, currentMonth);
+  const firstDayIdx = getFirstDayIndex(currentYear, currentMonth);
+  const minDate = min ? new Date(min) : null;
+  if (minDate) {
+    minDate.setHours(0, 0, 0, 0);
+  }
+
+  const daysGrid = [];
+  for (let i = 0; i < firstDayIdx; i++) {
+    daysGrid.push(null);
+  }
+  for (let d = 1; d <= totalDays; d++) {
+    daysGrid.push(d);
+  }
+
+  return (
+    <div
+      ref={containerRef}
+      style={{ position: "relative", width: "100%" }}
+    >
+      <input
+        type="text"
+        readOnly
+        placeholder="Select Date"
+        value={value}
+        onClick={() => setIsOpen(!isOpen)}
+        style={error ? styles.inputError : styles.input}
+      />
+      {isOpen && (
+        <div style={styles.calendarDropdown}>
+          <div style={styles.calendarHeader}>
+            <button
+              type="button"
+              onClick={handlePrevMonth}
+              style={styles.calNavBtn}
+            >
+              ◀
+            </button>
+            <span style={styles.calTitle}>
+              {monthNames[currentMonth]} {currentYear}
+            </span>
+            <button
+              type="button"
+              onClick={handleNextMonth}
+              style={styles.calNavBtn}
+            >
+              ▶
+            </button>
+          </div>
+
+          <div style={styles.calDayNames}>
+            {dayNames.map((d) => (
+              <span key={d} style={styles.calDayNameLabel}>
+                {d}
+              </span>
+            ))}
+          </div>
+
+          <div style={styles.calDaysGrid}>
+            {daysGrid.map((day, idx) => {
+              if (day === null) {
+                return (
+                  <span
+                    key={`empty-${idx}`}
+                    style={styles.calDayEmpty}
+                  />
+                );
+              }
+
+              const cellDate = new Date(currentYear, currentMonth, day);
+              cellDate.setHours(0, 0, 0, 0);
+
+              const isPast = minDate && cellDate < minDate;
+              const paddedMonth = String(currentMonth + 1).padStart(
+                2,
+                "0"
+              );
+              const paddedDay = String(day).padStart(2, "0");
+              const isSelected =
+                value === `${currentYear}-${paddedMonth}-${paddedDay}`;
+
+              return (
+                <button
+                  key={day}
+                  type="button"
+                  disabled={isPast}
+                  onClick={() => handleSelectDay(day)}
+                  style={{
+                    ...styles.calDayCell,
+                    ...(isPast ? styles.calDayDisabled : {}),
+                    ...(isSelected ? styles.calDaySelected : {}),
+                  }}
+                >
+                  {day}
+                </button>
+              );
+            })}
+          </div>
+        </div>
+      )}
+    </div>
+  );
+}
+
+DatePicker.propTypes = {
+  value: PropTypes.string.isRequired,
+  onChange: PropTypes.func.isRequired,
+  min: PropTypes.string,
+  error: PropTypes.string,
+};
+
+/**
  * OnboardingScreen collects student's profile settings.
  */
 function OnboardingScreen(props) {
@@ -477,13 +669,11 @@ function OnboardingScreen(props) {
             <label htmlFor="exam-date" style={styles.fieldLabel}>
               Exam Date
             </label>
-            <input
-              id="exam-date"
-              type="date"
-              min={new Date().toISOString().split("T")[0]}
+            <DatePicker
               value={profile.examDate}
-              onChange={(e) => handleInputChange("examDate", e.target.value)}
-              style={localErrors.examDate ? styles.inputError : styles.input}
+              onChange={(val) => handleInputChange("examDate", val)}
+              min={new Date().toISOString().split("T")[0]}
+              error={localErrors.examDate}
             />
             {localErrors.examDate && (
               <span style={styles.errorText}>{localErrors.examDate}</span>
@@ -2438,5 +2628,79 @@ const styles = {
     display: "flex",
     flexDirection: "column",
     gap: "24px",
+  },
+  calendarDropdown: {
+    position: "absolute",
+    top: "100%",
+    left: 0,
+    width: "280px",
+    backgroundColor: "#1a2744",
+    border: "1px solid rgba(255, 255, 255, 0.15)",
+    borderRadius: "12px",
+    padding: "12px",
+    zIndex: 1000,
+    boxShadow: "0 10px 25px rgba(0,0,0,0.5)",
+    marginTop: "6px",
+    animation: "fadeIn 0.2s ease-out",
+  },
+  calendarHeader: {
+    display: "flex",
+    justifyContent: "space-between",
+    alignItems: "center",
+    marginBottom: "10px",
+  },
+  calNavBtn: {
+    background: "transparent",
+    border: "none",
+    color: "#4ade80",
+    fontSize: "12px",
+    cursor: "pointer",
+    padding: "4px 8px",
+  },
+  calTitle: {
+    fontSize: "14px",
+    fontWeight: "bold",
+    color: "#e2e8f0",
+  },
+  calDayNames: {
+    display: "grid",
+    gridTemplateColumns: "repeat(7, 1fr)",
+    textAlign: "center",
+    marginBottom: "6px",
+  },
+  calDayNameLabel: {
+    fontSize: "11px",
+    color: "#94a3b8",
+    fontWeight: "bold",
+  },
+  calDaysGrid: {
+    display: "grid",
+    gridTemplateColumns: "repeat(7, 1fr)",
+    gap: "4px",
+  },
+  calDayEmpty: {
+    height: "28px",
+  },
+  calDayCell: {
+    height: "28px",
+    background: "transparent",
+    border: "none",
+    borderRadius: "6px",
+    color: "#e2e8f0",
+    fontSize: "12px",
+    cursor: "pointer",
+    display: "flex",
+    alignItems: "center",
+    justifyContent: "center",
+    transition: "background 0.2s ease",
+  },
+  calDayDisabled: {
+    color: "rgba(255,255,255,0.15)",
+    cursor: "not-allowed",
+  },
+  calDaySelected: {
+    backgroundColor: "#4ade80",
+    color: "#0f1724",
+    fontWeight: "bold",
   },
 };
