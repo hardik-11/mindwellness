@@ -1,4 +1,4 @@
-import { useState, useEffect, useRef } from "react";
+import { useState, useEffect, useRef, memo } from "react";
 import PropTypes from "prop-types";
 import { styles } from "../styles/styles.js";
 
@@ -7,7 +7,7 @@ import { styles } from "../styles/styles.js";
  * Allows picking future dates from a beautiful calendar interface.
  */
 function DatePicker(props) {
-  const { value, onChange, min, error } = props;
+  const { id, value, onChange, min, error } = props;
   const [isOpen, setIsOpen] = useState(false);
   const [currentYear, setCurrentYear] = useState(new Date().getFullYear());
   const [currentMonth, setCurrentMonth] = useState(new Date().getMonth());
@@ -85,8 +85,10 @@ function DatePicker(props) {
 
   const totalDays = getDaysInMonth(currentYear, currentMonth);
   const firstDayIdx = getFirstDayIndex(currentYear, currentMonth);
-  const minDate = min ? new Date(min) : null;
-  if (minDate) {
+  let minDate = null;
+  if (min) {
+    const [y, m, d] = min.split("-").map(Number);
+    minDate = new Date(y, m - 1, d);
     minDate.setHours(0, 0, 0, 0);
   }
 
@@ -104,19 +106,35 @@ function DatePicker(props) {
       style={{ position: "relative", width: "100%" }}
     >
       <input
+        id={id}
         type="text"
         readOnly
         placeholder="Select Date"
         value={value}
         onClick={() => setIsOpen(!isOpen)}
+        onKeyDown={(e) => {
+          if (e.key === "Enter" || e.key === " ") {
+            e.preventDefault();
+            setIsOpen((prev) => !prev);
+          }
+        }}
+        aria-haspopup="dialog"
+        aria-expanded={isOpen}
+        aria-controls="calendar-popup"
         style={error ? styles.inputError : styles.input}
       />
       {isOpen && (
-        <div style={styles.calendarDropdown}>
+        <div
+          id="calendar-popup"
+          role="dialog"
+          aria-label="Calendar"
+          style={styles.calendarDropdown}
+        >
           <div style={styles.calendarHeader}>
             <button
               type="button"
               onClick={handlePrevMonth}
+              aria-label="Previous month"
               style={styles.calNavBtn}
             >
               ◀
@@ -127,6 +145,7 @@ function DatePicker(props) {
             <button
               type="button"
               onClick={handleNextMonth}
+              aria-label="Next month"
               style={styles.calNavBtn}
             >
               ▶
@@ -170,6 +189,7 @@ function DatePicker(props) {
                   type="button"
                   disabled={isPast}
                   onClick={() => handleSelectDay(day)}
+                  aria-label={`${day} ${monthNames[currentMonth]} ${currentYear}`}
                   style={{
                     ...styles.calDayCell,
                     ...(isPast ? styles.calDayDisabled : {}),
@@ -188,10 +208,11 @@ function DatePicker(props) {
 }
 
 DatePicker.propTypes = {
+  id: PropTypes.string,
   value: PropTypes.string.isRequired,
   onChange: PropTypes.func.isRequired,
   min: PropTypes.string,
   error: PropTypes.string,
 };
 
-export default DatePicker;
+export default memo(DatePicker);

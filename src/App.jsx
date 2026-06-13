@@ -1,4 +1,4 @@
-import { useState, useEffect, useRef } from "react";
+import { useState, useEffect, useRef, useCallback, useMemo } from "react";
 import { styles, KEYFRAME_CSS } from "./styles/styles.js";
 import OnboardingScreen from "./components/OnboardingScreen.jsx";
 import JournalTab from "./components/JournalTab.jsx";
@@ -42,21 +42,21 @@ function App() {
   });
   const [error, setError] = useState(null);
 
-  function handleCompleteOnboarding() {
+  const handleCompleteOnboarding = useCallback(() => {
     setScreen("dashboard");
-  }
+  }, []);
 
-  function handleAddEntry(newEntry) {
+  const handleAddEntry = useCallback((newEntry) => {
     setJournalEntries((prev) => [...prev, newEntry]);
     setPatterns(null);
     setExercises(null);
-  }
+  }, []);
 
-  function handleAddChatMessage(newMsg) {
+  const handleAddChatMessage = useCallback((newMsg) => {
     setChatHistory((prev) => [...prev, newMsg]);
-  }
+  }, []);
 
-  function handleReset() {
+  const handleReset = useCallback(() => {
     setScreen("onboarding");
     setProfile({
       name: "",
@@ -77,9 +77,34 @@ function App() {
     setExercises(null);
     setPatterns(null);
     setError(null);
-  }
+  }, []);
 
-  const daysLeft = calculateDaysRemaining(profile.examDate);
+  const daysLeft = useMemo(
+    () => calculateDaysRemaining(profile.examDate),
+    [profile.examDate]
+  );
+
+  const tabRefs = useRef([]);
+
+  const handleTabKeyDown = useCallback((e, idx) => {
+    let newIdx = idx;
+    if (e.key === "ArrowRight") {
+      newIdx = (idx + 1) % 4;
+    } else if (e.key === "ArrowLeft") {
+      newIdx = (idx - 1 + 4) % 4;
+    } else if (e.key === "Home") {
+      newIdx = 0;
+    } else if (e.key === "End") {
+      newIdx = 3;
+    } else {
+      return;
+    }
+    e.preventDefault();
+    setActiveTab(newIdx);
+    setTimeout(() => {
+      tabRefs.current[newIdx]?.focus();
+    }, 0);
+  }, []);
 
   const dashRef = useRef(null);
   useEffect(() => {
@@ -105,7 +130,9 @@ function App() {
               📅{" "}
               {daysLeft > 0
                 ? `${daysLeft} days to ${profile.exam}`
-                : `${profile.exam} today`}
+                : daysLeft === 0
+                ? `${profile.exam} today! 🎯`
+                : `${profile.exam} was ${Math.abs(daysLeft)} days ago`}
             </span>
           </div>
         )}
@@ -150,11 +177,14 @@ function App() {
                 return (
                   <button
                     key={idx}
+                    ref={(el) => (tabRefs.current[idx] = el)}
                     role="tab"
                     id={`tab-control-${idx}`}
                     aria-selected={isSelected}
                     aria-controls={`tabpanel-${idx}`}
+                    tabIndex={isSelected ? 0 : -1}
                     onClick={() => setActiveTab(idx)}
+                    onKeyDown={(e) => handleTabKeyDown(e, idx)}
                     style={isSelected ? styles.tabBtnActive : styles.tabBtn}
                   >
                     {tabLabel}

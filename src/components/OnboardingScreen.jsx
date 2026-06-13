@@ -1,4 +1,4 @@
-import { useState } from "react";
+import { useState, memo } from "react";
 import PropTypes from "prop-types";
 import { EXAMS, FEARS, SUPPORT_SYSTEMS, styles } from "../styles/styles.js";
 import DatePicker from "./DatePicker.jsx";
@@ -116,6 +116,7 @@ function OnboardingScreen(props) {
               Exam Date
             </label>
             <DatePicker
+              id="exam-date"
               value={profile.examDate}
               onChange={(val) => handleInputChange("examDate", val)}
               min={new Date().toISOString().split("T")[0]}
@@ -198,15 +199,15 @@ function OnboardingScreen(props) {
 
 OnboardingScreen.propTypes = {
   profile: PropTypes.shape({
-    name: PropTypes.string,
-    exam: PropTypes.string,
-    examDate: PropTypes.string,
-    studyHours: PropTypes.number,
-    biggestFear: PropTypes.string,
-    supportSystem: PropTypes.array,
+    name: PropTypes.string.isRequired,
+    exam: PropTypes.string.isRequired,
+    examDate: PropTypes.string.isRequired,
+    studyHours: PropTypes.number.isRequired,
+    biggestFear: PropTypes.string.isRequired,
+    supportSystem: PropTypes.arrayOf(PropTypes.string).isRequired,
   }).isRequired,
   onUpdateProfile: PropTypes.func.isRequired,
   onComplete: PropTypes.func.isRequired,
 };
 
-export default OnboardingScreen;
+export default memo(OnboardingScreen);

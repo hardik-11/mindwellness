@@ -1,4 +1,4 @@
-import { useState, useRef } from "react";
+import { useState, useRef, useCallback, memo } from "react";
 import PropTypes from "prop-types";
 import { MOODS, styles } from "../styles/styles.js";
 import {
@@ -31,14 +31,32 @@ function JournalTab(props) {
   const [validationErrors, setValidationErrors] = useState({});
   const insightRef = useRef(null);
 
-  function handleMoodSelect(moodLabel) {
+  const handleMoodSelect = useCallback((moodLabel) => {
     setCurrentMood(moodLabel);
     setValidationErrors((prev) => {
       const copy = { ...prev };
       delete copy.mood;
       return copy;
     });
-  }
+  }, [setCurrentMood]);
+
+  const moodRefs = useRef([]);
+
+  const handleMoodKeyDown = useCallback((e, idx) => {
+    let newIdx = idx;
+    if (e.key === "ArrowRight") {
+      newIdx = (idx + 1) % MOODS.length;
+    } else if (e.key === "ArrowLeft") {
+      newIdx = (idx - 1 + MOODS.length) % MOODS.length;
+    } else {
+      return;
+    }
+    e.preventDefault();
+    handleMoodSelect(MOODS[newIdx].label);
+    setTimeout(() => {
+      moodRefs.current[newIdx]?.focus();
+    }, 0);
+  }, [handleMoodSelect]);
 
   function handleTextChange(e) {
     setJournalText(e.target.value);
@@ -109,19 +127,29 @@ function JournalTab(props) {
         <form onSubmit={handleAnalyze} style={styles.form}>
           <div style={styles.field}>
             <label style={styles.fieldLabel}>Current Mood</label>
-            <div style={styles.moodButtonGroup}>
-              {MOODS.map((m) => {
+            <div
+              style={styles.moodButtonGroup}
+              role="radiogroup"
+              aria-label="Current Mood"
+            >
+              {MOODS.map((m, idx) => {
                 const isSelected = currentMood === m.label;
+                const isFocusable =
+                  isSelected || (!currentMood && idx === 0);
                 return (
                   <button
                     key={m.label}
+                    ref={(el) => (moodRefs.current[idx] = el)}
                     type="button"
+                    role="radio"
+                    aria-checked={isSelected}
+                    tabIndex={isFocusable ? 0 : -1}
                     onClick={() => handleMoodSelect(m.label)}
+                    onKeyDown={(e) => handleMoodKeyDown(e, idx)}
                     style={
                       isSelected ? styles.moodBtnActive : styles.moodBtn
                     }
-                    aria-label={`Select ${m.label} mood`}
-                    aria-pressed={isSelected}
+                    aria-label={`${m.label} mood`}
                   >
                     <span style={styles.moodEmoji}>{m.emoji}</span>
                     <span style={styles.moodLabel}>{m.label}</span>
@@ -158,8 +186,12 @@ function JournalTab(props) {
               <label htmlFor="journal-textarea" style={styles.fieldLabel}>
                 Pen down your thoughts
               </label>
-              <span style={styles.charCounter}>
-                {journalText.length} / {MAX_JOURNAL_LENGTH}
+              <span
+                id="char-count"
+                style={styles.charCounter}
+                aria-live="polite"
+              >
+                {journalText.length} / {MAX_JOURNAL_LENGTH} characters
               </span>
             </div>
             <textarea
@@ -169,6 +201,7 @@ function JournalTab(props) {
               placeholder="How was your study session today? What's on your mind? Write freely..."
               value={journalText}
               onChange={handleTextChange}
+              aria-describedby="char-count"
               style={
                 validationErrors.text
                   ? styles.textareaError
@@ -286,11 +319,11 @@ function JournalTab(props) {
       {entries.length > 0 && (
         <div style={styles.pastEntriesSection}>
           <h4 style={styles.subHeading}>Past Journal Entries</h4>
-          <div style={styles.entriesList}>
+          <div style={styles.entriesList} role="list">
             {entries.map((ent, idx) => {
               const moodMatch = MOODS.find((m) => m.label === ent.mood);
               return (
-                <div key={idx} style={styles.entryRow}>
+                <div key={idx} style={styles.entryRow} role="listitem">
                   <div style={styles.entryRowMeta}>
                     <span style={styles.entryRowEmoji}>
                       {moodMatch ? moodMatch.emoji : "📝"}
@@ -319,13 +352,46 @@ function JournalTab(props) {
 }
 
 JournalTab.propTypes = {
-  entries: PropTypes.array.isRequired,
+  entries: PropTypes.arrayOf(
+    PropTypes.shape({
+      timestamp: PropTypes.string.isRequired,
+      mood: PropTypes.string.isRequired,
+      energy: PropTypes.number.isRequired,
+      text: PropTypes.string.isRequired,
+    })
+  ).isRequired,
   onAddEntry: PropTypes.func.isRequired,
-  insightCard: PropTypes.object,
+  insightCard: PropTypes.shape({
+    emotionalState: PropTypes.string.isRequired,
+    stressTriggers: PropTypes.arrayOf(PropTypes.string).isRequired,
+    copingStrategies: PropTypes.arrayOf(
+      PropTypes.shape({
+        title: PropTypes.string.isRequired,
+        description: PropTypes.string.isRequired,
+        duration: PropTypes.string.isRequired,
+        examContext: PropTypes.string.isRequired,
+      })
+    ).isRequired,
+    affirmation: PropTypes.string.isRequired,
+    urgencyLevel: PropTypes.string.isRequired,
+    followUpQuestion: PropTypes.string,
+  }),
   setInsightCard: PropTypes.func.isRequired,
-  loading: PropTypes.object.isRequired,
+  loading: PropTypes.shape({
+    journal: PropTypes.bool.isRequired,
+    chat: PropTypes.bool.isRequired,
+    exercises: PropTypes.bool.isRequired,
+    patterns: PropTypes.bool.isRequired,
+  }).isRequired,
   setLoading: PropTypes.func.isRequired,
-  profile: PropTypes.object.isRequired,
+  profile: PropTypes.shape({
+    name: PropTypes.string.isRequired,
+    exam: PropTypes.string.isRequired,
+    examDate: PropTypes.string.isRequired,
+    studyHours: PropTypes.number.isRequired,
+    biggestFear: PropTypes.string.isRequired,
+    supportSystem: PropTypes.arrayOf(PropTypes.string).isRequired,
+  }).isRequired,
   currentMood: PropTypes.string,
   setCurrentMood: PropTypes.func.isRequired,
   currentEnergy: PropTypes.number.isRequired,
@@ -335,4 +401,4 @@ JournalTab.propTypes = {
   onError: PropTypes.func.isRequired,
 };
 
-export default JournalTab;
+export default memo(JournalTab);

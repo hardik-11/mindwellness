@@ -1,4 +1,4 @@
-import { useEffect, useRef } from "react";
+import { useEffect, useRef, memo } from "react";
 import PropTypes from "prop-types";
 import { styles } from "../styles/styles.js";
 import { chatWithCompanion } from "../utils/api.js";
@@ -149,15 +149,40 @@ function CompanionTab(props) {
 }
 
 CompanionTab.propTypes = {
-  profile: PropTypes.object.isRequired,
-  entries: PropTypes.array.isRequired,
-  chatHistory: PropTypes.array.isRequired,
+  profile: PropTypes.shape({
+    name: PropTypes.string.isRequired,
+    exam: PropTypes.string.isRequired,
+    examDate: PropTypes.string.isRequired,
+    studyHours: PropTypes.number.isRequired,
+    biggestFear: PropTypes.string.isRequired,
+    supportSystem: PropTypes.arrayOf(PropTypes.string).isRequired,
+  }).isRequired,
+  entries: PropTypes.arrayOf(
+    PropTypes.shape({
+      timestamp: PropTypes.string.isRequired,
+      mood: PropTypes.string.isRequired,
+      energy: PropTypes.number.isRequired,
+      text: PropTypes.string.isRequired,
+    })
+  ).isRequired,
+  chatHistory: PropTypes.arrayOf(
+    PropTypes.shape({
+      sender: PropTypes.string.isRequired,
+      text: PropTypes.string.isRequired,
+      time: PropTypes.string.isRequired,
+    })
+  ).isRequired,
   onAddChatMessage: PropTypes.func.isRequired,
   chatInput: PropTypes.string.isRequired,
   setChatInput: PropTypes.func.isRequired,
-  loading: PropTypes.object.isRequired,
+  loading: PropTypes.shape({
+    journal: PropTypes.bool.isRequired,
+    chat: PropTypes.bool.isRequired,
+    exercises: PropTypes.bool.isRequired,
+    patterns: PropTypes.bool.isRequired,
+  }).isRequired,
   setLoading: PropTypes.func.isRequired,
   onError: PropTypes.func.isRequired,
 };
 
-export default CompanionTab;
+export default memo(CompanionTab);

@@ -56,7 +56,8 @@ export function parseAIResponse(text) {
  */
 export function calculateDaysRemaining(examDateStr) {
   if (!examDateStr) return 0;
-  const examDate = new Date(examDateStr);
+  const [year, month, day] = examDateStr.split("-").map(Number);
+  const examDate = new Date(year, month - 1, day);
   const today = new Date();
   today.setHours(0, 0, 0, 0);
   const diffTime = examDate - today;

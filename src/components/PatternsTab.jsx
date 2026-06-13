@@ -1,4 +1,4 @@
-import { useEffect, useCallback } from "react";
+import { useEffect, useCallback, memo } from "react";
 import PropTypes from "prop-types";
 import { MOODS, styles } from "../styles/styles.js";
 import { analyzeEmotionalPatterns } from "../utils/api.js";
@@ -79,7 +79,11 @@ function PatternsTab(props) {
             <span>Low</span>
             <span>Overwhelmed</span>
           </div>
-          <div style={styles.chartArea}>
+          <div
+            style={styles.chartArea}
+            role="img"
+            aria-label="Mood score trend bar chart"
+          >
             {entries.map((entry, idx) => {
               const moodObj = MOODS.find((m) => m.label === entry.mood);
               const score = moodObj ? moodObj.score : 3;
@@ -98,7 +102,11 @@ function PatternsTab(props) {
                           ? "#fbbf24"
                           : "#f472b6",
                     }}
-                    title={`${entry.mood} (Score: ${score}/5)`}
+                    role="img"
+                    aria-label={
+                      `Entry ${idx + 1}: Mood: ${entry.mood}, ` +
+                      `Score: ${score} out of 5`
+                    }
                   />
                   <span style={styles.chartBarLabel}>{idx + 1}</span>
                 </div>
@@ -189,13 +197,44 @@ function PatternsTab(props) {
 }
 
 PatternsTab.propTypes = {
-  profile: PropTypes.object.isRequired,
-  entries: PropTypes.array.isRequired,
-  patterns: PropTypes.object,
+  profile: PropTypes.shape({
+    name: PropTypes.string.isRequired,
+    exam: PropTypes.string.isRequired,
+    examDate: PropTypes.string.isRequired,
+    studyHours: PropTypes.number.isRequired,
+    biggestFear: PropTypes.string.isRequired,
+    supportSystem: PropTypes.arrayOf(PropTypes.string).isRequired,
+  }).isRequired,
+  entries: PropTypes.arrayOf(
+    PropTypes.shape({
+      timestamp: PropTypes.string.isRequired,
+      mood: PropTypes.string.isRequired,
+      energy: PropTypes.number.isRequired,
+      text: PropTypes.string.isRequired,
+    })
+  ).isRequired,
+  patterns: PropTypes.shape({
+    topTriggers: PropTypes.arrayOf(
+      PropTypes.shape({
+        trigger: PropTypes.string.isRequired,
+        frequency: PropTypes.string.isRequired,
+        explanation: PropTypes.string.isRequired,
+      })
+    ).isRequired,
+    trend: PropTypes.string.isRequired,
+    trendReasoning: PropTypes.string.isRequired,
+    hiddenPattern: PropTypes.string.isRequired,
+    actionPlan: PropTypes.arrayOf(PropTypes.string).isRequired,
+  }),
   setPatterns: PropTypes.func.isRequired,
-  loading: PropTypes.object.isRequired,
+  loading: PropTypes.shape({
+    journal: PropTypes.bool.isRequired,
+    chat: PropTypes.bool.isRequired,
+    exercises: PropTypes.bool.isRequired,
+    patterns: PropTypes.bool.isRequired,
+  }).isRequired,
   setLoading: PropTypes.func.isRequired,
   onError: PropTypes.func.isRequired,
 };
 
-export default PatternsTab;
+export default memo(PatternsTab);

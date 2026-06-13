@@ -1,4 +1,4 @@
-import { useEffect, useCallback } from "react";
+import { useEffect, useCallback, memo } from "react";
 import PropTypes from "prop-types";
 import { styles } from "../styles/styles.js";
 import { generateMindfulnessExercises } from "../utils/api.js";
@@ -115,13 +115,40 @@ function MindfulnessTab(props) {
 }
 
 MindfulnessTab.propTypes = {
-  profile: PropTypes.object.isRequired,
-  entries: PropTypes.array.isRequired,
-  exercises: PropTypes.array,
+  profile: PropTypes.shape({
+    name: PropTypes.string.isRequired,
+    exam: PropTypes.string.isRequired,
+    examDate: PropTypes.string.isRequired,
+    studyHours: PropTypes.number.isRequired,
+    biggestFear: PropTypes.string.isRequired,
+    supportSystem: PropTypes.arrayOf(PropTypes.string).isRequired,
+  }).isRequired,
+  entries: PropTypes.arrayOf(
+    PropTypes.shape({
+      timestamp: PropTypes.string.isRequired,
+      mood: PropTypes.string.isRequired,
+      energy: PropTypes.number.isRequired,
+      text: PropTypes.string.isRequired,
+    })
+  ).isRequired,
+  exercises: PropTypes.arrayOf(
+    PropTypes.shape({
+      name: PropTypes.string.isRequired,
+      emoji: PropTypes.string,
+      duration: PropTypes.string.isRequired,
+      steps: PropTypes.arrayOf(PropTypes.string).isRequired,
+      whyItHelps: PropTypes.string.isRequired,
+    })
+  ),
   setExercises: PropTypes.func.isRequired,
-  loading: PropTypes.object.isRequired,
+  loading: PropTypes.shape({
+    journal: PropTypes.bool.isRequired,
+    chat: PropTypes.bool.isRequired,
+    exercises: PropTypes.bool.isRequired,
+    patterns: PropTypes.bool.isRequired,
+  }).isRequired,
   setLoading: PropTypes.func.isRequired,
   onError: PropTypes.func.isRequired,
 };
 
-export default MindfulnessTab;
+export default memo(MindfulnessTab);
