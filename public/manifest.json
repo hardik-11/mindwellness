@@ -1,0 +1,18 @@
+{
+  "short_name": "MealMind AI",
+  "name": "MealMind AI — Calorie &amp; Nutrition Coach",
+  "description": "AI-powered nutrition planner, calorie calculator, and coach.",
+  "icons": [
+    {
+      "src": "/icon.svg",
+      "sizes": "512x512",
+      "type": "image/svg+xml",
+      "purpose": "any maskable"
+    }
+  ],
+  "start_url": "./",
+  "background_color": "#0b0f19",
+  "theme_color": "#10b981",
+  "display": "standalone",
+  "orientation": "portrait-primary"
+}
